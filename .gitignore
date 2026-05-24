@@ -25,3 +25,5 @@ prisma/migrations/
 
 # vercel
 .vercel
+
+.vercel

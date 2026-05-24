@@ -1,21 +1,33 @@
 import { ProductGrid } from "@/components/ProductGrid";
+import { prisma } from "@/lib/db";
 
 async function getProducts() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/products`, {
-    cache: "no-store",
+  const products = await prisma.product.findMany({
+    include: {
+      stockLevels: { include: { warehouse: true } },
+    },
+    orderBy: { name: "asc" },
   });
-  if (!res.ok) throw new Error("Failed to load products");
-  return res.json();
+  return products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    description: p.description,
+    imageUrl: p.imageUrl,
+    priceInCents: p.priceInCents,
+    stockByWarehouse: p.stockLevels.map((sl) => ({
+      warehouseId: sl.warehouseId,
+      warehouseName: sl.warehouse.name,
+      warehouseLocation: sl.warehouse.location,
+      total: sl.total,
+      reserved: sl.reserved,
+      available: sl.total - sl.reserved,
+    })),
+  }));
 }
 
 async function getWarehouses() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/warehouses`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Failed to load warehouses");
-  return res.json();
+  return prisma.warehouse.findMany({ orderBy: { name: "asc" } });
 }
 
 export default async function HomePage() {
